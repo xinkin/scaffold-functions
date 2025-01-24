@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Web3 Sign Test</title>
+    <!-- Import ethers as a module -->
+    <script type="module">
+      import { ethers } from 'https://cdnjs.cloudflare.com/ajax/libs/ethers/6.8.1/ethers.min.js';
+
+      // Make ethers available globally
+      window.ethers = ethers;
+    </script>
+  </head>
+  <body>
+    <h1>Web3 Signing Test</h1>
+    <button onclick="runTest()">Test Sign & Verify</button>
+
+    <div id="result" style="margin-top: 20px; white-space: pre-wrap"></div>
+
+    <script>
+      async function signMessage(message) {
+        try {
+          if (!window.ethereum) {
+            throw new Error('Please install MetaMask or another Web3 wallet');
+          }
+          const provider = new window.ethers.BrowserProvider(window.ethereum);
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          const signer = await provider.getSigner();
+          const uniqueMessage = `
+                    App Authentication
+                    Message: ${message}
+                    Timestamp: ${Date.now()}
+                    Nonce: ${Math.floor(Math.random() * 1000000)}
+                `;
+          const signature = await signer.signMessage(uniqueMessage);
+          const address = await signer.getAddress();
+          return {
+            message: uniqueMessage,
+            signature: signature,
+            address: address,
+          };
+        } catch (error) {
+          console.error('Error signing message:', error);
+          throw error;
+        }
+      }
+
+      async function verifySignature(message, signature, expectedAddress) {
+        try {
+          const recoveredAddress = window.ethers.verifyMessage(
+            message,
+            signature,
+          );
+          const isValid =
+            recoveredAddress.toLowerCase() === expectedAddress.toLowerCase();
+          return {
+            isValid,
+            recoveredAddress,
+          };
+        } catch (error) {
+          console.error('Error verifying signature:', error);
+          throw error;
+        }
+      }
+
+      async function runTest() {
+        const resultDiv = document.getElementById('result');
+        try {
+          resultDiv.innerHTML = 'Testing...\n';
+
+          // Sign message
+          const signResult = await signMessage('Test message');
+          resultDiv.innerHTML +=
+            '\nSigning Result:\n' + JSON.stringify(signResult, null, 2);
+
+          // Verify signature
+          const verifyResult = await verifySignature(
+            signResult.message,
+            signResult.signature,
+            signResult.address,
+          );
+          resultDiv.innerHTML +=
+            '\n\nVerification Result:\n' +
+            JSON.stringify(verifyResult, null, 2);
+        } catch (error) {
+          resultDiv.innerHTML += '\nError: ' + error.message;
+          console.error(error);
+        }
+      }
+
+      // Make runTest available globally
+      window.runTest = runTest;
+    </script>
+  </body>
+</html>
